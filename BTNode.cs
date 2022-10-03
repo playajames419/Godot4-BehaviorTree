@@ -11,12 +11,13 @@ public abstract partial class BTNode : Node
 	 * To define your behaviors, use and extend BTLeaf instead.
 	 */
 
-	// (Optional) Emitted after a tick() call. True is success, false is failure.
+	// (Optional) Emitted after a Tick() call. True is success, false is failure.
 	[Signal]
-	public delegate void Ticked(); //TODO Implement these using global event manager
-	// Emitted if abort_tree is set to true
+	public delegate void TickedBehaviorEventHandler(); //TODO Implement these using global event manager
+	
+	// Emitted if AbortTree is set to true
 	[Signal]
-	public delegate void AbortedTree();
+	public delegate void AbortedBehaviorEventHandler();
 
 	public enum BTNodeState
 	{
@@ -42,7 +43,7 @@ public abstract partial class BTNode : Node
 			Succeed();
 		else
 		{
-			// push_warning("Deactivated BTNode '" + name + "', path: '" + get_path() + "'")
+			GD.PushWarning("Deactivated BTNode '" + Name + "', path: '" + GetPath() + "'");
 			Fail();
 		}
 	}
@@ -53,14 +54,14 @@ public abstract partial class BTNode : Node
 	 */
 
 	// Public: Called before the tick happens used for preperation for action or conditional
-	public abstract void PreTick(Node agent, Blackboard blackboard);
+	public abstract void _preTick(Node agent, Blackboard blackboard);
 
 	// This is where the core behavior goes and where the node state is changed.
 	// You must return either succeed() or fail() (check below), not just set the state.
-	public abstract void Tick(Node agent, Blackboard blackboard);
+	public abstract bool _tick(Node agent, Blackboard blackboard);
 
 	// Called after the tick for anything that needs to happen after the action
-	public abstract void PostTick(Node agent, Blackboard blackboard, bool result);
+	public abstract void _postTick(Node agent, Blackboard blackboard, bool result);
 
 	// DO NOT OVERRIDE ANYTHING FROM HERE ON
 
@@ -134,32 +135,32 @@ public abstract partial class BTNode : Node
 			return false;
 
 		if (IsDebug)
-			Print(Name);
+			GD.Print(Name);
 		
 		// Do stuff before core behavior
-		PreTick(agent, blackboard);
+		_preTick(agent, blackboard);
 		
 		Run();
 
-		bool result = Tick(agent, blackboard);
+		bool result = _tick(agent, blackboard);
 
-		if (result is GDScriptFunctionState) //TODO Implement these need to figure out how this converts to C#
-		{
-			Debug.Assert(Running(), "BTNode execution was suspended. Did you succeed() or fail() before yield?");
-			result = await (result, "completed");
-		}
+		// if (result is GDScriptFunctionState) //TODO Implement these need to figure out how this converts to C# GDScriptFunctionState is depreciated v 2.1
+		// {
+		// 	Debug.Assert(Running(), "BTNode execution was suspended. Did you succeed() or fail() before await?");
+		// 	result = await ;
+		// }
 		
 		Debug.Assert(!Running(), "BTNode executed but it's still running. Did you forget to return succeed() or fail()?");
 		
 		// Do stuff after core behavior depending on the result
-		PostTick(agent, blackboard, result);
+		_postTick(agent, blackboard, result);
 		
 		// Notify completion and new state (i.e. the result of the execution)
-		//EmitSignal("tick", result); //TODO implement signals here
+		EmitSignal(nameof(TickedBehavior));
 		
 		// Queue tree abortion at the end of current tick
 		if (AbortTree)
-			EmitSignal("abort_tree");
+			EmitSignal(nameof(AbortedBehavior));
 
 		return result;
 	}

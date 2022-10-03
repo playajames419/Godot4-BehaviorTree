@@ -25,13 +25,12 @@ public partial class BehaviorTree : Node
 	public override void _Ready()
 	{
 		Agent = GetNode<Node>(_agent);
-		//Blackboard = GetNode<Blackboard>(_blackboard);
-		//Controller = GetChild<BTNode>(0);
+		Blackboard = GetNode<Blackboard>(_blackboard);
+		Controller = GetChild<BTNode>(0);
 		
 		Debug.Assert(GetChildCount() == 1, "Behavior Tree Error: A Behavior Tree can only have one entry point.");
-		//Controller.Connect(nameof(BTNode.AbortedTree), this, Abort());
-		Controller.PropagateCall("connect", ["abortTree", this, "abort"]); //TODO connect to signals from BTNode
-		//Start();
+		Controller.AbortedBehavior += Abort;
+		Start();
 	}
 
 	public override void _Process(double delta)
@@ -43,16 +42,16 @@ public partial class BehaviorTree : Node
 		}
 
 		if (IsDebug)
-			Print();
+			GD.Print();
 
 		TickResult = Controller.Tick(Agent, Blackboard);
 
-		if (TickResult is GDScriptFunctionState) //TODO Figure how to implement this
-		{
-			SetProcess(false);
-			await (TickResult, "completed"); //TODO update to use new await 
-			SetProcess(true);
-		}
+		// if (TickResult is GDScriptFunctionState) //TODO Figure how to implement this
+		// {
+		// 	SetProcess(false);
+		// 	await (TickResult, "completed"); //TODO update to use new await 
+		// 	SetProcess(true);
+		// }
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -64,16 +63,16 @@ public partial class BehaviorTree : Node
 		}
 		
 		if (IsDebug)
-			Print();
+			GD.Print();
 
 		TickResult = Controller.Tick(Agent, Blackboard);
 
-		if (TickResult is GDScriptFunctionState)
-		{
-			SetPhysicsProcess(false);
-			await (TickResult, "completed");
-			SetPhysicsProcess(true);
-		}
+		// if (TickResult is GDScriptFunctionState)
+		// {
+		// 	SetPhysicsProcess(false);
+		// 	await (TickResult, "completed");
+		// 	SetPhysicsProcess(true);
+		// }
 	}
 
 	// Internal: Set up if we are using process or physics_process for the behavior tree SyncMode: Idle = Process, Physics = PhysicsProcess
